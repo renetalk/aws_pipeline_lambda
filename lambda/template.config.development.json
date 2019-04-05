@@ -1,0 +1,5 @@
+[
+  "LambdaVPCSecurityGroupId=FILL_WITH_OUTPUT_FROM_VPC_STACK",
+  "LambdaVPCSubnetId=FILL_WITH_OUTPUT_FROM_VPC_STACK",
+  "LambdaFunctionName=Development-Lambda"
+]

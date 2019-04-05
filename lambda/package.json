@@ -1,0 +1,21 @@
+{
+  "name": "async-lambda",
+  "version": "1.0.0",
+  "description": "Async Lambda",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "package": "sh scripts/package.sh",
+    "aws-package": "aws cloudformation package --template-file template.yaml --output-template-file build/template.yaml",
+    "aws-deploy": "aws cloudformation deploy --template-file build/template.yaml --capabilities CAPABILITY_IAM",
+    "deploy-staging": "sh scripts/deployStaging.sh",
+    "deploy-prod": "sh scripts/deployProduction.sh",
+    "deploy-dev": "sh scripts/deployDevelopment.sh",
+    "deploy": "npm run deploy-dev && npm run deploy-staging && npm run deploy-prod"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.422.0"
+  },
+  "author": "René Bohrenfeldt",
+  "license": "ISC"
+}

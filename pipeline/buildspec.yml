@@ -1,0 +1,19 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - # Do what you want before
+  build:
+    commands:
+      - echo Build started on `date`
+      - aws cloudformation package --template-file template.yaml --s3-bucket $ARTIFACT_BUCKET --output-template-file template.prepared.yaml
+      - cp template.config.$ENV.json template.config.json
+  post_build:
+    commands:
+      - # Do what you want after
+artifacts:
+  files:
+    - template.config.json
+    - template.prepared.yaml
+  discard-paths: yes

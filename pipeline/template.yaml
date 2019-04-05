@@ -1,0 +1,119 @@
+# ----------------------------------------------
+# This file describes the AWS resources that are created and updated by the pipeline
+# ----------------------------------------------
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: 'AWS::Serverless-2016-10-31'
+# Parameters that are defined in template.config.[stage].json
+Parameters:
+  Environment:
+    Type: String
+    Description:
+      Enter the environment name for which to run this
+      deployment.
+    AllowedValues:
+      - staging
+      - development
+      - production
+# -------------------------------------------
+# All Resources that are created
+# -------------------------------------------
+Resources:
+  # -------------------------------------------
+  # VPC configuration
+  # -------------------------------------------
+  LambdaVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.2.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: 'default'
+      Tags:
+        - Key: stage
+          Value: !Ref Environment
+  LambdaVPCSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref LambdaVPC
+      GroupDescription: 'S3 enabled security group'
+      SecurityGroupEgress:
+        - Description: 'default local network rule'
+          IpProtocol: -1
+          FromPort: -1
+          ToPort: -1
+          CidrIp: '0.0.0.0/0'
+        - Description: 'S3 egress rule'
+          DestinationPrefixListId: pl-6ea54007 # this is the prefix for s3 in eu-central-1
+          FromPort: 443
+          IpProtocol: tcp
+          ToPort: 443
+      SecurityGroupIngress:
+        - Description: 'default local network rule'
+          # SourceSecurityGroupId: !Ref LambdaVPCSecurityGroup
+          CidrIp: '0.0.0.0/0'
+          FromPort: -1
+          IpProtocol: -1
+          ToPort: -1
+  # The VPC default table is not created by cloudformation, but by the VPC itself.
+  # Therefore CloudFormation does not have knowledge about the default route table id.
+  VpcDefaultRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref LambdaVPC
+  LambdaSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: eu-west-1a
+      CidrBlock: '10.2.0.0/18'
+      MapPublicIpOnLaunch: false # this should be false once the peering is set up
+      Tags:
+        - Key: stage
+          Value: !Ref Environment
+      VpcId: !Ref LambdaVPC
+  LambdaSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref LambdaSubnet
+      RouteTableId: !Ref VpcDefaultRouteTable
+  LambdaSubnetFailover:
+    Type: AWS::EC2::Subnet
+    Properties:
+      AvailabilityZone: eu-west-1b
+      CidrBlock: '10.2.64.0/18'
+      MapPublicIpOnLaunch: false # this should be false once the peering is set up
+      Tags:
+        - Key: stage
+          Value: !Ref Environment
+      VpcId: !Ref LambdaVPC
+  LambdaSubnetFailoverRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref LambdaSubnetFailover
+      RouteTableId: !Ref VpcDefaultRouteTable
+  VpcEndpointCodePipeline:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref LambdaVPC
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.codepipeline'
+      SecurityGroupIds:
+        - !GetAtt LambdaVPC.DefaultSecurityGroup
+      SubnetIds:
+        - !Ref LambdaSubnet
+        - !Ref LambdaSubnetFailover
+      PrivateDnsEnabled: true
+      VpcEndpointType: Interface
+#-----------------
+# Outputs section
+#-----------------
+# Variables that can be seen in the console after creation of the stack
+Outputs:
+  VPCSecurityGroupId:
+    Description: Default VPC Security Group Id
+    Value: !GetAtt LambdaVPC.DefaultSecurityGroup
+  VPCSubnetIds:
+    Description: VPC Subnet Ids
+    Value: !Join
+      - ','
+      - - !Ref LambdaSubnet
+        - !Ref LambdaSubnetFailover
+
