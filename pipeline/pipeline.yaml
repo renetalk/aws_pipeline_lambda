@@ -43,7 +43,7 @@ Resources:
         - - !Ref Environment
           - Pipeline
       RestartExecutionOnUpdate: false
-      RoleArn: !GetAtt DeploylineRole.Arn # this references the IAM role used to execute the pipeline
+      RoleArn: !GetAtt PipelineRole.Arn # this references the IAM role used to execute the pipeline
       Stages:
         - Name: Source # In this stage code is checked out from CodeCommit whenever the source code is updated in specific branches
           Actions:
@@ -218,7 +218,7 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              AWS: !GetAtt DeploylineRole.Arn
+              AWS: !GetAtt PipelineRole.Arn
             Action: 'sts:AssumeRole'
           - Effect: Allow
             Principal:
@@ -340,7 +340,7 @@ Resources:
                     - !Ref AWS::AccountId
                     - 'parameter/CodeBuild/*'
   # Role for the deployment of the pipeline
-  DeploylineRole:
+  PipelineRole:
     Type: 'AWS::IAM::Role'
     Properties:
       AssumeRolePolicyDocument:
